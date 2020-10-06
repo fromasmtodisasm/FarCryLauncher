@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 #include <Windows.h>
-
+#define CRYGAME_EXPORTS
 using namespace std;
 
 struct ISystem;
@@ -137,6 +137,79 @@ struct ISystem
 
 	// Retrieve the name of the user currently logged in to the computer
 	virtual const char* GetUserName() = 0;
+	// Gets current supported CPU features flags. (CPUF_SSE, CPUF_SSE2, CPUF_3DNOW, CPUF_MMX)
+	virtual int GetCPUFlags() = 0;
+
+	// Get seconds per processor tick
+	virtual double GetSecondsPerCycle() = 0;
+
+	// dumps the memory usage statistics to the log
+	virtual void DumpMemoryUsageStatistics() = 0;
+
+	// Quit the appliacation
+	virtual void	Quit() = 0;
+	// Tells the system if it is relaunching or not
+	virtual void	Relaunch(bool bRelaunch) = 0;
+	// return true if the application is in the shutdown phase
+	virtual bool	IsQuitting() = 0;
+
+	// Display error message.
+	// Logs it to console and file and error message box.
+	// Then terminates execution.
+	virtual void Error(const char* sFormat, ...) = 0;
+
+	//DOC-IGNORE-BEGIN
+	//[Timur] DEPRECATED! Use Validator Warning instead.
+	// Display warning message.
+	// Logs it to console and file and display a warning message box.
+	// Not terminates execution.
+	//__declspec(deprecated) virtual void Warning( const char *sFormat,... ) = 0;
+	//DOC-IGNORE-END
+
+	// Report warning to current Validator object.
+	// Not terminates execution.
+	virtual void Warning(int module, int severity, int flags, const char* file, const char* format, ...) = 0;
+	// Compare specified verbosity level to the one currently set.
+	virtual bool CheckLogVerbosity(int verbosity) = 0;
+
+	// returns true if this is dedicated server application
+	virtual bool IsDedicated() { return false; }
+
+	// return the related subsystem interface
+	virtual IGame* GetIGame() = 0;
+	virtual INetwork* GetINetwork() = 0;
+	virtual IRenderer* GetIRenderer() = 0;
+	virtual IInput* GetIInput() = 0;
+	virtual ITimer* GetITimer() = 0;
+	virtual IConsole* GetIConsole() = 0;
+	virtual IScriptSystem* GetIScriptSystem() = 0;
+	virtual I3DEngine* GetI3DEngine() = 0;
+	virtual ISoundSystem* GetISoundSystem() = 0;
+	virtual IMusicSystem* GetIMusicSystem() = 0;
+	virtual IPhysicalWorld* GetIPhysicalWorld() = 0;
+	virtual IMovieSystem* GetIMovieSystem() = 0;
+	virtual IAISystem* GetAISystem() = 0;
+	virtual IMemoryManager* GetIMemoryManager() = 0;
+	virtual IEntitySystem* GetIEntitySystem() = 0;
+	virtual ICryFont* GetICryFont() = 0;
+	virtual ICryPak* GetIPak() = 0;
+	virtual ILog* GetILog() = 0;
+	virtual IStreamEngine* GetStreamEngine() = 0;
+	virtual ICryCharManager* GetIAnimationSystem() = 0;
+	virtual IValidator* GetIValidator() = 0;
+	virtual IFrameProfileSystem* GetIProfileSystem() = 0;
+
+	virtual void DebugStats(bool checkpoint, bool leaks) = 0;
+	virtual void DumpWinHeaps() = 0;
+	virtual int DumpMMStats(bool log) = 0;
+
+	//////////////////////////////////////////////////////////////////////////
+	// @param bValue set to true when running on a cheat protected server or a client that is connected to it (not used in singlplayer)
+	virtual void SetForceNonDevMode(const bool bValue) = 0;
+	// @return is true when running on a cheat protected server or a client that is connected to it (not used in singlplayer)
+	virtual bool GetForceNonDevMode() const = 0;
+	virtual bool WasInDevMode() const = 0;
+	virtual bool IsDevMode() const = 0;
 };
 
 
@@ -188,6 +261,7 @@ struct CSystemUserCallback : public ISystemUserCallback
 	}
 	virtual void OnProcessSwitch() override
 	{
+		cout << "Process switch" << endl;
 	}
 };
 
@@ -237,17 +311,6 @@ LRESULT CALLBACK MainWndProc(
 
 	switch (uMsg)
 	{
-	case WM_CREATE:
-		// Initialize the window. 
-		return 0;
-
-	case WM_PAINT:
-		// Paint the window's client area. 
-		return 0;
-
-	case WM_SIZE:
-		// Set the size and position of the window. 
-		return 0;
 
 	case WM_DESTROY:
 		// Clean up window-specific data objects. 
@@ -263,6 +326,120 @@ LRESULT CALLBACK MainWndProc(
 	return 0;
 }
 
+//forward declarations.
+//////////////////////////////////////////////////////////////////////
+typedef void*	WIN_HWND;
+typedef void*	WIN_HINSTANCE;
+typedef void*	WIN_HDC;
+typedef void*	WIN_HGLRC;
+
+#include "IGame.h"
+
+struct CGame : public IGame
+{
+	// Inherited via IGame
+	virtual bool Init(ISystem* pSystem, bool bDedicatedSrv, bool bInEditor, const char* szGameMod) override
+	{
+		return true;
+	}
+	virtual bool Update() override
+	{
+		return true;
+	}
+	virtual bool Run(bool& bRelaunch) override
+	{
+		return false;
+	}
+	virtual const char* IsMODLoaded() override
+	{
+		return nullptr;
+	}
+	virtual IGameMods* GetModsInterface() override
+	{
+		return nullptr;
+	}
+	virtual void Release() override
+	{
+		delete this;
+	}
+	virtual void ExecuteScheduledEvents() override
+	{
+	}
+	virtual bool UseFixedStep() override
+	{
+		return false;
+	}
+	virtual int SnapTime(float fTime, float fOffset = 0.5f) override
+	{
+		return 0;
+	}
+	virtual int SnapTime(int iTime, float fOffset = 0.5f) override
+	{
+		return 0;
+	}
+	virtual int GetiFixedStep() override
+	{
+		return 0;
+	}
+	virtual float GetFixedStep() override
+	{
+		return 0.0f;
+	}
+	virtual bool LoadLevelForEditor(const char* pszLevelDirectory, const char* pszMissionName = 0) override
+	{
+		return false;
+	}
+	virtual IEntityClassRegistry* GetClassRegistry() override
+	{
+		return nullptr;
+	}
+	virtual void OnSetVar(ICVar* pVar) override
+	{
+	}
+	virtual void ResetState() override
+	{
+	}
+	virtual void GetMemoryStatistics(ICrySizer* pSizer) override
+	{
+	}
+	virtual void SaveConfiguration(const char* sSystemCfg, const char* sGameCfg, const char* sProfile) override
+	{
+	}
+	virtual void ReloadScripts() override
+	{
+	}
+	virtual bool GetModuleState(EGameCapability eCap) override
+	{
+		return false;
+	}
+	virtual IPhysicsStreamer* GetPhysicsStreamer() override
+	{
+		return nullptr;
+	}
+	virtual IPhysicsEventClient* GetPhysicsEventClient() override
+	{
+		return nullptr;
+	}
+	virtual void UpdateDuringLoading() override
+	{
+	}
+	virtual IXAreaMgr* GetAreaManager() override
+	{
+		return nullptr;
+	}
+	virtual ITagPointManager* GetTagPointManager() override
+	{
+		return nullptr;
+	}
+	virtual void SendMessageA(const char* s)
+	{
+	}
+};
+
+ CRYGAME_API IGame* CreateGameInstance()
+{
+	 return new CGame();
+}
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	CSystemUserCallback userCallback;
@@ -287,7 +464,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	wc.hInstance = hInstance;
 	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+	wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
 	wc.lpszMenuName = "";
 	wc.lpszClassName = "CryENGINE";
 
@@ -300,10 +477,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		PFNCREATESYSTEMINTERFACE CreateSystemInterface = (PFNCREATESYSTEMINTERFACE)GetProcAddress(L, "CreateSystemInterface");
 		if (auto system = CreateSystemInterface(startupParams); system)
 		{
+			auto hwnd = system->GetIRenderer();
 			SGameInitParams startupParams;
 			startupParams.sGameDLL = "CryGame.dll";
 			if (!system->CreateGame(startupParams))
+			{
+				cout << "lskdfj" << endl;
 				return EXIT_FAILURE;
+
+			}
+			else
+			{
+				cout << "Lksjdlfk" << endl;
+			}
 
 		}
 	}
