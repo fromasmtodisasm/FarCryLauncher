@@ -302,6 +302,7 @@ static void GameSystemAuthCheckFunction(void* data)
 	TEA_ENCODE((unsigned int*)data, (unsigned int*)data, 32, (unsigned int*)key2);
 }
 
+HWND g_HWND = 0;
 LRESULT CALLBACK MainWndProc(
 	HWND hwnd,        // handle to window
 	UINT uMsg,        // message identifier
@@ -312,8 +313,24 @@ LRESULT CALLBACK MainWndProc(
 	switch (uMsg)
 	{
 
+	case WM_CREATE:
+		char class_name[64];
+		if (auto cn = GetClassName(hwnd, class_name, sizeof(class_name)); cn)
+		{
+			if (!strcmp(class_name, "CryENGINE"))
+			{
+				g_HWND = hwnd;
+			}
+			else
+			{
+				return 1;
+			}
+
+		}
+		return 0;
 	case WM_DESTROY:
 		// Clean up window-specific data objects. 
+		PostQuitMessage(0);
 		return 0;
 
 		// 
@@ -328,10 +345,10 @@ LRESULT CALLBACK MainWndProc(
 
 //forward declarations.
 //////////////////////////////////////////////////////////////////////
-typedef void*	WIN_HWND;
-typedef void*	WIN_HINSTANCE;
-typedef void*	WIN_HDC;
-typedef void*	WIN_HGLRC;
+typedef void* WIN_HWND;
+typedef void* WIN_HINSTANCE;
+typedef void* WIN_HDC;
+typedef void* WIN_HGLRC;
 
 #include "IGame.h"
 
@@ -436,9 +453,9 @@ struct CGame : public IGame
 	}
 };
 
- CRYGAME_API IGame* CreateGameInstance()
+CRYGAME_API IGame* CreateGameInstance()
 {
-	 return new CGame();
+	return new CGame();
 }
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -458,7 +475,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	// Register the main window class. 
 	wc.style = CS_HREDRAW | CS_VREDRAW;
-	wc.lpfnWndProc = (WNDPROC)MainWndProc;
+	//wc.lpfnWndProc = (WNDPROC)MainWndProc;
+	wc.lpfnWndProc = DefWindowProc;
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
 	wc.hInstance = hInstance;
@@ -470,6 +488,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	if (!RegisterClass(&wc))
 		return FALSE;
+#if 0
+	g_HWND = CreateWindow(wc.lpszClassName, "Инициализация Direct3D",
+							 WS_OVERLAPPEDWINDOW, 200, 100,
+							 500, 500, NULL, NULL, hInstance, NULL);
+	startupParams.hWnd = (void*)g_HWND;
+#endif
 
 	auto L = LoadLibraryA("CrySystem.dll");
 	if (L)
@@ -489,11 +513,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			else
 			{
 				cout << "Lksjdlfk" << endl;
+				if (auto game = system->GetIGame(); game)
+				{
+					auto r = false;
+					game->Run(r);
+					system->Relaunch(true);
+					system->Release();
+				}
 			}
 
 		}
 	}
 
-	return EXIT_FAILURE;
+	if (g_HWND)
+	{
+		DestroyWindow(g_HWND);
+		UnregisterClass(wc.lpszClassName, NULL);
+	}	return EXIT_FAILURE;
 }
 
