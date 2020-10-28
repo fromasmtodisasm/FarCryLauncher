@@ -6,7 +6,6 @@
 using namespace std;
 
 struct ISystem;
-struct ISystem;
 struct ILog;
 struct IEntitySystem;
 struct IEntity;
@@ -39,6 +38,12 @@ struct SFileVersion;
 struct IDataProbe;
 struct ISystemUserCallback;
 struct IValidator;
+
+#include "IConsole.h"
+#include "IScriptSystem.h"
+#include "IXGame.h"
+
+std::string var = "r_Fullscreen";
 
 #define CRYSYSTEM_API __declspec(dllimport)
 
@@ -457,6 +462,7 @@ CRYGAME_API IGame* CreateGameInstance()
 {
 	return new CGame();
 }
+// 02FC9F38 - scriptsystem interface
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	CSystemUserCallback userCallback;
@@ -501,6 +507,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		PFNCREATESYSTEMINTERFACE CreateSystemInterface = (PFNCREATESYSTEMINTERFACE)GetProcAddress(L, "CreateSystemInterface");
 		if (auto system = CreateSystemInterface(startupParams); system)
 		{
+			puts("cxconsole");
+			auto con = system->GetIConsole();
+			auto rf = con->GetCVar(var.c_str());
+			if (rf)
+			{
+				auto i = rf->GetIVal();
+				auto f = rf->GetFVal();
+				auto s = rf->GetString();
+				rf->Refresh();
+				rf->Set((int)1);
+			}
+			auto str = R"(setglobal( "r_Fullscreen", 1))";
+			auto size = strlen(str);
+			char sz[24] = { '1' };
+			sz[sprintf(sz, "%d", size)] = 0;
+			OutputDebugString(sz);
+			system->GetIScriptSystem()->ExecuteBuffer(str, size);
+			//system->GetIScriptSystem()->SetGlobalValue("r_Fullscreen", 0);
+
+			puts("end_cxconsole");
 			auto hwnd = system->GetIRenderer();
 			SGameInitParams startupParams;
 			startupParams.sGameDLL = "CryGame.dll";
@@ -512,9 +538,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			}
 			else
 			{
-				cout << "Lksjdlfk" << endl;
 				if (auto game = system->GetIGame(); game)
 				{
+
+					IScriptSystem* ss = system->GetIScriptSystem();
+					auto fh = ss->GetScriptHandle();
+					std::cout << "fuckyou" << std::endl;
+
 					auto r = false;
 					game->Run(r);
 					system->Relaunch(true);

@@ -38,7 +38,7 @@
 #	include <vector>
 #endif
 
-#include "CryVersion.h"
+#include <CryVersion.h>
 
 #define PLAYER_CLASS_ID						1
 #define ADVCAMSYSTEM_CLASS_ID			97			// is this the right place to put that define?
@@ -216,7 +216,7 @@ struct IGameMods
 struct ITagPointManager
 {
 	// This function creates a tag point in the game world
-	virtual ITagPoint *CreateTagPoint(const string &name, void* pos, const void* angles) = 0;
+	virtual ITagPoint *CreateTagPoint(const string &name, const Vec3 &pos, const Vec3 &angles) = 0;
 
 	// Retrieves a tag point by name
 	virtual ITagPoint *GetTagPoint(const string &name) =0;
